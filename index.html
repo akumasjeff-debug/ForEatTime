@@ -3,119 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>聚餐登記平台 - 儀表板版</title>
+    <title>聚餐管理系統 - 階層管理最終版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
         touch-action: manipulation;
-        .calendar-day { min-height: 140px; background: #ffffff; }
-        .time-btn { width: 100%; padding: 6px 0; margin-bottom: 2px; font-size: 11px; font-weight: 800; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; color: #64748b; position: relative; z-index: 20; }
-        .name-tag { font-size: 10px; padding: 2px 4px; border-radius: 4px; display: flex; justify-content: space-between; color: white; margin-bottom: 2px; font-weight: bold; }
-        .lunch-tag { background: #f59e0b; } .dinner-tag { background: #6366f1; }
-        #adminAuth { position: fixed; inset: 0; background: #1e293b; z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .pokemon-chat { background: #fdfdfd; border: 4px solid #3b4cca; border-radius: 20px; position: relative; box-shadow: 0 6px 0 #2a3582; overflow: hidden; }
-        .chat-header { background: #ff0000; color: white; padding: 6px 12px; border-bottom: 4px solid #3b4cca; font-family: 'ZCOOL KuaiLe', cursive; font-size: 14px; }
-        .chat-msg { background: white; border: 2px solid #ffde00; border-radius: 10px; padding: 6px 10px; margin-bottom: 8px; box-shadow: 2px 2px 0 #b3a125; }
-        .presence-tag { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: bold; border: 1px solid #bae6fd; }
+        
+        .calendar-day { min-height: 160px; background: #ffffff; }
+
+        /* 新：按鈕勾選風格 */
+        .time-btn { 
+            width: 100%; padding: 6px 0; margin-bottom: 4px; 
+            font-size: 12px; font-weight: 800; border: 2px solid #e2e8f0; 
+            border-radius: 8px; background: #fff; color: #64748b;
+            transition: all 0.2s; position: relative;
+        }
+        .time-btn.selected {
+            border-color: #3b82f6;
+            color: #1e40af;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .name-tag { 
+            font-size: 11px; padding: 3px 6px; border-radius: 6px; 
+            display: flex; justify-content: space-between; align-items: center;
+            color: white; margin-bottom: 4px; font-weight: bold;
+        }
+        .lunch-tag { background: #f59e0b; border-left: 4px solid #b45309; } 
+        .dinner-tag { background: #6366f1; border-left: 4px solid #4338ca; }
+        
+        #adminAuth { position: fixed; inset: 0; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        
+        /* 寶可夢對話框與背景修復 */
+        .pokemon-chat { 
+            background: #fdfdfd; 
+            border: 4px solid #3b4cca; 
+            border-radius: 20px; 
+            box-shadow: 0 6px 0 #2a3582; 
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header { background: #ff0000; color: white; padding: 10px; border-bottom: 4px solid #3b4cca; font-family: 'ZCOOL KuaiLe', cursive; }
+        #chatDisplay { 
+            background-color: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .chat-msg { background: white; border: 2px solid #ffde00; border-radius: 10px; padding: 8px; box-shadow: 2px 2px 0 #b3a125; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen pb-10">
+<body class="bg-slate-50 min-h-screen pb-10 text-slate-800">
 
     <div id="adminAuth" style="display: none;">
-        <div class="bg-white p-10 rounded-3xl text-slate-800 shadow-2xl w-80 text-center border-4 border-blue-500">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-80 text-center border-4 border-blue-500">
             <h2 class="text-2xl font-black mb-6 text-blue-600">🔐 管理員驗證</h2>
             <input type="text" id="authPass" maxlength="3" class="w-full border-b-4 border-blue-500 p-2 text-center text-4xl font-black tracking-[1rem] outline-none mb-8 text-blue-600" onkeypress="if(event.key === 'Enter') checkAuth()">
-            <button onclick="checkAuth()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">確認登入</button>
+            <button onclick="checkAuth()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition">確認登入</button>
         </div>
     </div>
 
     <div id="mainApp" style="opacity: 0; transition: opacity 0.5s;">
-        <div class="bg-blue-700 p-4 text-white text-center shadow-lg sticky top-0 z-50">
-            <h1 id="topTitle" class="text-xl md:text-2xl font-black">🍴 揪團冒險者中心</h1>
-            <div id="presenceContainer" class="mt-2 flex flex-wrap justify-center gap-2">
-                <span class="text-[10px] text-blue-200">👀 正在線上：</span>
-                <div id="presenceList" class="flex flex-wrap gap-1 justify-center"></div>
-            </div>
+        <div class="bg-blue-800 p-4 text-white text-center shadow-xl sticky top-0 z-50">
+            <h1 id="topTitle" class="text-xl md:text-2xl font-black">🍴 冒險者管理中心</h1>
+            <div id="presenceList" class="mt-2 flex flex-wrap gap-1 justify-center"></div>
         </div>
 
         <div class="max-w-7xl mx-auto px-2 md:px-6 mt-6">
             
-            <div id="adminContainer" class="hidden w-full space-y-6 text-slate-800">
-                <div class="bg-slate-800 p-8 rounded-3xl text-white border-b-8 border-blue-600 shadow-2xl">
-                    <div class="max-w-xl mx-auto mb-8">
-                        <h3 class="text-xl font-black mb-4 text-blue-300">🆕 建立新冒險團</h3>
-                        <div class="flex gap-3">
-                            <input type="text" id="newGroupName" placeholder="例如：大學同學會" class="flex-1 p-4 rounded-xl bg-slate-700 text-white outline-none border border-slate-600 font-bold">
-                            <button onclick="createNewGroup()" class="bg-blue-500 px-8 rounded-xl font-black hover:bg-blue-400">建立</button>
-                        </div>
+            <div id="superAdminPanel" class="hidden space-y-6">
+                <div class="bg-slate-900 p-8 rounded-3xl text-white border-b-8 border-indigo-500 shadow-2xl">
+                    <h3 class="text-xl font-black mb-4 text-indigo-300">👑 總管中心 - 派發次級權限</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                        <input type="text" id="subAdminName" placeholder="管理員名稱" class="p-4 rounded-xl bg-slate-800 text-white border border-slate-700">
+                        <input type="text" id="subAdminPass" maxlength="3" placeholder="3碼密碼" class="p-4 rounded-xl bg-slate-800 text-white border border-slate-700 text-center">
+                        <button onclick="createSubAdmin()" class="bg-indigo-500 rounded-xl font-black hover:bg-indigo-400 text-white">建立次管</button>
                     </div>
-                    
-                    <h3 class="font-bold mb-4 text-blue-300 border-t pt-6 border-slate-600">📂 已存檔群組 (儀表板)</h3>
-                    <div id="existingGroups" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2"></div>
-                    
-                    <div class="max-w-xl mx-auto">
-                        <button onclick="clearAllGroupList()" class="mt-8 w-full py-2 text-xs text-red-400 border border-dashed border-red-500/50 rounded-lg">清空所有群組清單紀錄</button>
+                    <div id="adminTree" class="grid grid-cols-1 gap-6 text-slate-800"></div>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-3xl text-white border-b-8 border-blue-500 shadow-2xl">
+                    <h3 class="text-xl font-black mb-4 text-blue-300">⚡ 總管直屬活動</h3>
+                    <div class="flex gap-3 mb-6">
+                        <input type="text" id="directGroupName" placeholder="活動名稱" class="flex-1 p-4 rounded-xl bg-slate-700 text-white border border-slate-600 font-bold">
+                        <button onclick="createDirectGroup()" class="bg-blue-500 px-8 rounded-xl font-black hover:bg-blue-400">建立</button>
                     </div>
+                    <div id="directGroupList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
                 </div>
             </div>
 
-            <div id="groupContent" class="hidden grid grid-cols-1 lg:grid-cols-4 gap-6 text-slate-800">
-                
-                <div class="lg:col-span-1 space-y-4">
-                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-                        <label class="font-bold block mb-2">1. 我的名字</label>
-                        <input type="text" id="userName" oninput="updatePresenceName()" placeholder="輸入名字" class="w-full border-2 border-slate-100 p-3 rounded-2xl outline-none focus:border-blue-500 font-bold">
+            <div id="subAdminPanel" class="hidden space-y-6">
+                <div class="bg-slate-800 p-8 rounded-3xl text-white border-b-8 border-blue-600 shadow-2xl">
+                    <h3 class="text-xl font-black mb-4 text-blue-300">📌 次管中心 - 建立活動</h3>
+                    <div class="flex gap-3 mb-6">
+                        <input type="text" id="newGroupName" placeholder="例如：春季員工旅遊" class="flex-1 p-4 rounded-xl bg-slate-700 text-white border border-slate-600 font-bold">
+                        <button onclick="createNewGroup()" class="bg-blue-500 px-8 rounded-xl font-black hover:bg-blue-400 transition">建立新活動</button>
                     </div>
+                    <h3 class="font-bold mb-4 text-blue-300 border-t pt-6 border-slate-600">📋 我建立的活動清單</h3>
+                    <div id="subExistingGroups" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+                </div>
+            </div>
 
-                    <div class="bg-amber-50 border-2 border-amber-100 p-5 rounded-3xl">
-                        <label class="font-bold block mb-2 text-center font-black">餐廳投票 ❤️</label>
+            <div id="groupContent" class="hidden grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="bg-white p-5 rounded-3xl shadow-md border border-slate-200">
+                        <label class="font-bold block mb-2">1. 我的名字</label>
+                        <input type="text" id="userName" oninput="updatePresenceName()" placeholder="請輸入名字" class="w-full border-2 border-slate-100 p-3 rounded-2xl outline-none focus:border-blue-500 font-bold bg-slate-50">
+                    </div>
+                    <div class="bg-amber-50 border-2 border-amber-100 p-5 rounded-3xl shadow-md">
+                        <label class="font-black block mb-2 text-center text-amber-800">餐廳投票 ❤️</label>
                         <div id="foodPool" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
                         <div class="flex gap-1">
                             <input type="text" id="newFood" placeholder="想吃？" class="flex-1 text-xs p-2 rounded-lg outline-none border border-amber-200">
                             <button onclick="addFood()" class="bg-amber-500 text-white px-3 rounded-lg font-bold text-xs">新增</button>
                         </div>
                     </div>
-
-                    <div class="pokemon-chat flex flex-col h-[400px]">
-                        <div class="chat-header font-black">💬 聊天室</div>
-                        <div id="chatDisplay" class="flex-1 overflow-y-auto p-4 space-y-2 bg-slate-50"></div>
-                        <div class="p-3 bg-white border-t-2 border-slate-100">
-                            <div class="flex gap-2">
-                                <input type="text" id="chatInput" placeholder="輸入訊息..." class="flex-1 text-sm outline-none" onkeypress="if(event.key === 'Enter') sendMsg()">
-                                <button onclick="sendMsg()" class="bg-red-500 text-white px-3 py-1 rounded-lg font-black text-xs">發送</button>
-                            </div>
+                    <div class="pokemon-chat h-[450px]">
+                        <div class="chat-header font-black">💬 冒險者中心留言板</div>
+                        <div id="chatDisplay" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+                        <div class="p-3 bg-white border-t flex gap-2">
+                            <input type="text" id="chatInput" placeholder="輸入..." class="flex-1 text-sm outline-none border-b-2 border-slate-100 focus:border-red-400" onkeypress="if(event.key === 'Enter') sendMsg()">
+                            <button onclick="sendMsg()" class="bg-red-500 text-white px-3 py-1 rounded-lg font-black text-xs shadow-md">發送</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="lg:col-span-3 space-y-4">
-                    <div class="flex items-center justify-between bg-white p-4 rounded-3xl shadow-sm border border-slate-200">
-                        <button onclick="changeMonth(-1)" class="w-10 h-10 flex bg-slate-50 rounded-full text-blue-600 font-black items-center justify-center">❮</button>
-                        <div id="currentMonthDisplay" class="text-xl font-black text-slate-700 flex-1 text-center"></div>
-                        <button onclick="changeMonth(1)" class="w-10 h-10 flex bg-slate-50 rounded-full text-blue-600 font-black items-center justify-center">❯</button>
+                    <div class="flex items-center justify-between bg-white p-4 rounded-3xl border shadow-sm">
+                        <button onclick="changeMonth(-1)" class="w-10 h-10 flex bg-slate-100 rounded-full items-center justify-center hover:bg-blue-100 transition">❮</button>
+                        <div id="currentMonthDisplay" class="text-2xl font-black text-slate-800 tracking-tighter"></div>
+                        <button onclick="changeMonth(1)" class="w-10 h-10 flex bg-slate-100 rounded-full items-center justify-center hover:bg-blue-100 transition">❯</button>
                     </div>
-                    <div class="flex justify-end gap-2 text-[10px] font-bold">
-                        <button onclick="toggleType('午餐')" class="bg-amber-100 text-amber-700 px-3 py-2 rounded-full border border-amber-200 shadow-sm">一鍵午</button>
-                        <button onclick="toggleType('晚餐')" class="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-full border border-indigo-200 shadow-sm">一鍵晚</button>
-                    </div>
-                    <div class="grid grid-cols-7 gap-px bg-slate-200 border-2 border-slate-200 rounded-3xl overflow-hidden shadow-2xl">
-                        <div class="bg-slate-50 p-2 font-bold text-red-500 text-center text-xs">日</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">一</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">二</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs">三</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs">四</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs">五</div><div class="bg-slate-50 p-2 font-bold text-blue-500 text-center text-xs text-xs">六</div>
-                        <div id="calendarDays" class="contents text-xs"></div>
-                    </div>
-                    
-                    <button onclick="submitData()" class="w-full bg-red-600 text-white text-2xl font-black py-6 rounded-3xl shadow-xl active:scale-95 transition">確認送出登記</button>
-                    
-                    <button onclick="clearCurrentGroup()" class="w-full mt-4 py-3 text-sm text-red-500 font-bold border-2 border-dashed border-red-200 rounded-2xl hover:bg-red-50 transition">🗑️ 清空此房間所有資料 (結算後用)</button>
 
-                    <div id="bestTimeResult" class="mt-8 bg-white border-2 border-blue-200 p-6 rounded-3xl shadow-inner grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <div class="grid grid-cols-7 gap-px mb-1 text-center font-black">
+                        <div class="text-red-500 bg-red-50 py-2 rounded-t-xl">日</div>
+                        <div class="text-slate-600 bg-slate-100 py-2">一</div><div class="text-slate-600 bg-slate-100 py-2">二</div><div class="text-slate-600 bg-slate-100 py-2">三</div><div class="text-slate-600 bg-slate-100 py-2">四</div><div class="text-slate-600 bg-slate-100 py-2">五</div>
+                        <div class="text-blue-500 bg-blue-50 py-2 rounded-t-xl">六</div>
+                    </div>
+
+                    <div id="calendarDays" class="grid grid-cols-7 gap-px bg-slate-300 border-2 border-slate-300 rounded-b-3xl overflow-hidden shadow-2xl"></div>
+                    
+                    <button onclick="submitData()" class="w-full bg-red-600 text-white text-2xl font-black py-6 rounded-3xl shadow-xl active:scale-95 transition-all mt-4">確認送出登記</button>
+                    <div id="bestTimeResult" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <button onclick="clearCurrentGroup()" class="w-full py-2 text-xs text-red-400 font-bold border-2 border-dashed border-red-200 rounded-xl mt-10 hover:bg-red-50 transition">⚠️ 清空此房間資料</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Firebase 設定與初始化
         const firebaseConfig = {
             apiKey: "AiZaSyCi4_U67UeFutq4Hq3BPJoydC3jdMR8SN0",
             authDomain: "foreattime.firebaseapp.com",
@@ -130,112 +167,147 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const groupID = urlParams.get('group');
+        const subAdminID = urlParams.get('mgr');
         let currY, currM, myPresenceRef;
 
         window.onload = function() {
-            if (!groupID) {
-                document.getElementById('adminAuth').style.display = 'flex';
-                document.getElementById('authPass').focus();
-            } else { startApp(); }
+            if (groupID) { startApp(); } 
+            else { document.getElementById('adminAuth').style.display = 'flex'; }
         };
 
         function checkAuth() {
-            if (document.getElementById('authPass').value.trim() === "666") {
-                document.getElementById('adminAuth').style.display = 'none';
-                startApp(true);
-            } else { alert("錯誤"); }
-        }
-
-        function startApp(isAdmin = false) {
-            const now = new Date();
-            currY = now.getFullYear(); currM = now.getMonth() + 1;
-            document.getElementById('mainApp').style.opacity = "1";
-            
-            if (!groupID && isAdmin) {
-                document.getElementById('adminContainer').classList.remove('hidden');
-                document.getElementById('groupContent').classList.add('hidden');
-                document.getElementById('topTitle').innerText = "🏰 管理中心";
-                fetchGroupList();
-            } else if (groupID) {
-                document.getElementById('adminContainer').classList.add('hidden');
-                document.getElementById('groupContent').classList.remove('hidden');
-                db.ref('group_list').child(groupID).once('value', snap => {
-                    const name = snap.val() ? snap.val().displayName : groupID;
-                    document.getElementById('topTitle').innerText = `🍴 群組：${name}`;
+            const pass = document.getElementById('authPass').value.trim();
+            if (subAdminID) {
+                db.ref(`sub_admins/${subAdminID}`).once('value', snap => {
+                    if (snap.val() && snap.val().password === pass) {
+                        document.getElementById('adminAuth').style.display = 'none';
+                        startApp(false, true);
+                    } else { alert("次管密碼錯誤"); }
                 });
-                renderCalendar();
-                syncChat();
-                setupPresence();
+            } else {
+                if (pass === "666") {
+                    document.getElementById('adminAuth').style.display = 'none';
+                    startApp(true, false);
+                } else { alert("總管密碼錯誤"); }
             }
         }
 
-        function setupPresence() {
-            const connectedRef = db.ref(".info/connected");
-            myPresenceRef = db.ref(`groups/${groupID}/presence`).push();
-            connectedRef.on("value", snap => {
-                if (snap.val() === true) {
-                    myPresenceRef.onDisconnect().remove();
-                    updatePresenceName();
-                }
-            });
-            db.ref(`groups/${groupID}/presence`).on("value", snap => {
-                const listEl = document.getElementById('presenceList');
-                listEl.innerHTML = '';
-                Object.values(snap.val() || {}).forEach(u => {
-                    listEl.innerHTML += `<span class="presence-tag">${u.name}</span>`;
+        function startApp(isSuper = false, isSub = false) {
+            document.getElementById('mainApp').style.opacity = "1";
+            const now = new Date(); currY = now.getFullYear(); currM = now.getMonth() + 1;
+
+            if (isSuper) {
+                document.getElementById('superAdminPanel').classList.remove('hidden');
+                document.getElementById('topTitle').innerText = "🏰 總管理員中心";
+                fetchAdminTree(); fetchDirectGroupList(); 
+            } else if (isSub) {
+                // 核心修復：確保次管面板正確顯示
+                document.getElementById('subAdminPanel').classList.remove('hidden');
+                document.getElementById('groupContent').classList.add('hidden');
+                db.ref(`sub_admins/${subAdminID}`).once('value', snap => {
+                    document.getElementById('topTitle').innerText = `📌 次管中心：${snap.val().name}`;
+                });
+                fetchSubGroupList();
+            } else if (groupID) {
+                document.getElementById('groupContent').classList.remove('hidden');
+                db.ref('group_list').child(groupID).on('value', snap => {
+                    const name = snap.val() ? snap.val().displayName : groupID;
+                    document.getElementById('topTitle').innerText = `🍴 群組：${name}`;
+                });
+                renderCalendar(); syncChat(); setupPresence();
+            }
+        }
+
+        // --- 管理員功能 ---
+        function createDirectGroup() {
+            const name = document.getElementById('directGroupName').value.trim();
+            if(!name) return;
+            const gid = 'super_' + Math.random().toString(36).substring(2, 8);
+            db.ref('group_list').child(gid).set({ displayName: name, owner: 'super_admin', createdAt: Date.now() });
+            document.getElementById('directGroupName').value = '';
+        }
+
+        function fetchDirectGroupList() {
+            db.ref('group_list').on('value', snap => {
+                const list = document.getElementById('directGroupList'); list.innerHTML = '';
+                Object.entries(snap.val() || {}).forEach(([id, info]) => {
+                    if (!info.owner || info.owner === 'super_admin') {
+                        const url = `${window.location.origin}${window.location.pathname}?group=${id}`;
+                        list.innerHTML += `<div class="bg-slate-700 p-4 rounded-2xl border border-blue-400/30 text-white shadow-lg"><div class="flex justify-between mb-1 font-bold text-blue-300"><span>${info.displayName}</span><button onclick="if(confirm('刪除？')) db.ref('group_list/${id}').remove()" class="text-red-400">✕</button></div><div class="text-[9px] text-slate-500 truncate mb-4 font-mono">${url}</div><a href="${url}" target="_blank" class="block bg-blue-600 text-center py-2 rounded-xl text-xs font-black">進入活動</a></div>`;
+                    }
                 });
             });
         }
 
-        function updatePresenceName() {
-            if (!myPresenceRef) return;
-            const name = document.getElementById('userName').value.trim() || "秘密客";
-            myPresenceRef.set({ name: name });
+        function createSubAdmin() {
+            const name = document.getElementById('subAdminName').value.trim();
+            const pass = document.getElementById('subAdminPass').value.trim();
+            if(!name || pass.length !== 3) return alert('需3位密碼');
+            const id = 'mgr_' + Math.random().toString(36).substring(2, 7);
+            db.ref(`sub_admins/${id}`).set({ name, password: pass, createdAt: Date.now() });
+            document.getElementById('subAdminName').value = '';
+            document.getElementById('subAdminPass').value = '';
         }
 
-        function sendMsg() {
-            const name = document.getElementById('userName').value.trim() || "秘密客";
-            const text = document.getElementById('chatInput').value.trim();
-            if(!text) return;
-            db.ref(`groups/${groupID}/messages`).push({ name: name, text: text, time: Date.now() });
-            document.getElementById('chatInput').value = '';
-        }
-
-        function syncChat() {
-            db.ref(`groups/${groupID}/messages`).limitToLast(30).on('value', snap => {
-                const display = document.getElementById('chatDisplay');
-                display.innerHTML = '';
-                Object.values(snap.val() || {}).forEach(m => {
-                    display.innerHTML += `<div class="chat-msg"><div class="chat-msg-name">▼ ${m.name}</div><div class="chat-msg-text">${m.text}</div></div>`;
+        function fetchAdminTree() {
+            db.ref('sub_admins').on('value', snap => {
+                const tree = document.getElementById('adminTree'); tree.innerHTML = '';
+                Object.entries(snap.val() || {}).forEach(([mgrId, info]) => {
+                    const mgrUrl = `${window.location.origin}${window.location.pathname}?mgr=${mgrId}`;
+                    tree.innerHTML += `<div class="bg-white p-6 rounded-2xl border-l-8 border-indigo-500 shadow-md"><div class="flex justify-between items-center mb-2"><span class="text-indigo-800 font-black">👤 次管：${info.name} (密碼: ${info.password})</span><button onclick="if(confirm('刪除？')) db.ref('sub_admins/${mgrId}').remove()" class="text-red-400 text-xs px-2 py-1 border border-red-200 rounded">刪除</button></div><div class="text-[10px] bg-slate-100 p-2 rounded mb-4 break-all text-indigo-500 font-mono">${mgrUrl}</div><div class="grid grid-cols-1 md:grid-cols-4 gap-2" id="tree-groups-${mgrId}"></div></div>`;
+                    db.ref('group_list').orderByChild('owner').equalTo(mgrId).on('value', gSnap => {
+                        const gList = document.getElementById(`tree-groups-${mgrId}`); gList.innerHTML = '';
+                        Object.entries(gSnap.val() || {}).forEach(([gid, g]) => {
+                            const gUrl = `${window.location.origin}${window.location.pathname}?group=${gid}`;
+                            gList.innerHTML += `<div class="bg-slate-50 p-2 rounded text-[10px] flex justify-between border"> <a href="${gUrl}" target="_blank" class="truncate flex-1 hover:text-blue-600">🔗 ${g.displayName}</a><button onclick="if(confirm('確定刪除？')) db.ref('group_list/${gid}').remove()" class="ml-2 text-red-500 font-bold">✕</button></div>`;
+                        });
+                    });
                 });
-                display.scrollTop = display.scrollHeight;
             });
         }
 
+        function createNewGroup() {
+            const name = document.getElementById('newGroupName').value.trim();
+            if(!name) return;
+            const gid = 'gp_' + Math.random().toString(36).substring(2, 8);
+            db.ref('group_list').child(gid).set({ displayName: name, owner: subAdminID, createdAt: Date.now() });
+            document.getElementById('newGroupName').value = '';
+        }
+
+        function fetchSubGroupList() {
+            db.ref('group_list').orderByChild('owner').equalTo(subAdminID).on('value', snap => {
+                const list = document.getElementById('subExistingGroups'); list.innerHTML = '';
+                Object.entries(snap.val() || {}).forEach(([id, info]) => {
+                    const url = `${window.location.origin}${window.location.pathname}?group=${id}`;
+                    list.innerHTML += `<div class="bg-slate-700 p-4 rounded-xl shadow-lg text-white"><div class="flex justify-between mb-2 font-bold text-blue-300"><span>${info.displayName}</span><button onclick="if(confirm('刪除？')) db.ref('group_list/${id}').remove()" class="text-red-400">✕</button></div><div class="text-[9px] text-slate-500 mb-3 truncate font-mono">${url}</div><a href="${url}" target="_blank" class="block bg-blue-600 text-center py-2 rounded-xl text-xs font-black">進入活動</a></div>`;
+                });
+            });
+        }
+
+        // --- 核心日曆與登記邏輯 ---
         function renderCalendar() {
             document.getElementById('currentMonthDisplay').innerText = `${currY}年 ${String(currM).padStart(2, '0')}月`;
             const first = new Date(currY, currM - 1, 1).getDay();
             const days = new Date(currY, currM, 0).getDate();
-            const container = document.getElementById('calendarDays');
-            container.innerHTML = ''; 
-            for (let i = 0; i < first; i++) container.innerHTML += `<div class="bg-slate-50/50 border"></div>`;
+            const container = document.getElementById('calendarDays'); container.innerHTML = ''; 
+            for (let i = 0; i < first; i++) container.innerHTML += `<div class="bg-slate-100/50"></div>`;
             for (let d = 1; d <= days; d++) {
-                container.innerHTML += `<div class="calendar-day bg-white border p-1 flex flex-col"><span class="text-[10px] font-bold text-slate-300 ml-1 mb-1">${d}</span><button class="time-btn" data-day="${d}" data-time="午餐" data-selected="false" onclick="handleBtnClick(this)">午餐</button><div id="lunch-list-${d}" class="mb-1"></div><button class="time-btn" data-day="${d}" data-time="晚餐" data-selected="false" onclick="handleBtnClick(this)">晚餐</button><div id="dinner-list-${d}"></div></div>`;
+                const weekIdx = new Date(currY, currM - 1, d).getDay();
+                let colorClass = weekIdx === 0 ? "text-red-600" : (weekIdx === 6 ? "text-blue-600" : "text-slate-700");
+                container.innerHTML += `<div class="calendar-day p-2 flex flex-col"><span class="text-lg font-black ${colorClass} mb-2 border-b border-slate-100 pb-1">${d}</span><button class="time-btn" data-day="${d}" data-time="午餐" onclick="toggleSelection(this)">午餐</button><div id="lunch-list-${d}"></div><button class="time-btn" data-day="${d}" data-time="晚餐" onclick="toggleSelection(this)">晚餐</button><div id="dinner-list-${d}"></div></div>`;
             }
             syncData();
         }
 
-        function handleBtnClick(el) {
-            const isSel = el.getAttribute('data-selected') === 'true';
-            updateBtnStatus(el, !isSel);
-        }
-
-        function updateBtnStatus(el, status) {
-            el.setAttribute('data-selected', status);
-            el.style.backgroundColor = status ? "#1e40af" : "#fff";
-            el.style.color = status ? "#fff" : "#64748b";
-            el.style.borderColor = status ? "#1e3a8a" : "#e2e8f0";
-            el.innerText = status ? "✅ " + el.getAttribute('data-time') : el.getAttribute('data-time');
+        // 新：切換選擇狀態邏輯
+        function toggleSelection(el) {
+            el.classList.toggle('selected');
+            const time = el.getAttribute('data-time');
+            if (el.classList.contains('selected')) {
+                el.innerText = `[✓] ${time}`;
+            } else {
+                el.innerText = time;
+            }
         }
 
         function syncData() {
@@ -243,7 +315,7 @@
             db.ref(`groups/${groupID}/foods`).on('value', snap => {
                 const p = document.getElementById('foodPool'); p.innerHTML = '';
                 Object.entries(snap.val()||{}).forEach(([name, info]) => {
-                    p.innerHTML += `<div class="bg-white p-2 rounded-xl border border-amber-200 text-[10px] mb-2 shadow-sm"><div class="flex justify-between font-black"><span>${name}</span><div><button onclick="voteFood('${name}')">❤️</button><button onclick="delFood('${name}')" class="ml-1 text-slate-300">✕</button></div></div><div class="text-[9px] bg-amber-50 p-1 rounded mt-1 font-bold">提議人：${info.proposer || '匿名'} | 讚：${info.count||0}</div></div>`;
+                    p.innerHTML += `<div class="bg-white p-2 rounded-xl border border-amber-200 text-[10px] mb-2 shadow-sm"><div class="flex justify-between font-black"><span>${name}</span><div><button onclick="voteFood('${name}')">❤️</button><button onclick="delFood('${name}')" class="ml-1 text-slate-300">✕</button></div></div><div class="text-amber-700 font-bold mt-1">讚：${info.count||0}</div></div>`;
                 });
             });
             db.ref(`groups/${groupID}/registrations`).on('value', snap => {
@@ -253,7 +325,7 @@
                     if(reg.month !== mKey) return;
                     reg.selections.forEach(sel => {
                         const target = document.getElementById(`${sel.time === '午餐' ? 'lunch-list-' : 'dinner-list-'}${sel.day}`);
-                        if(target) target.innerHTML += `<div class="name-tag ${sel.time === '午餐' ? 'lunch-tag' : 'dinner-tag'}"><span>${reg.name}</span><button onclick="deleteReg('${id}','${sel.day}','${sel.time}')" class="ml-1 opacity-70">✕</button></div>`;
+                        if(target) target.innerHTML += `<div class="name-tag ${sel.time === '午餐' ? 'lunch-tag' : 'dinner-tag'}"><span>${reg.name}</span><button onclick="deleteReg('${id}','${sel.day}','${sel.time}')" class="opacity-70">✕</button></div>`;
                         const sk = `${sel.day}日(${sel.time})`; if(!stats[sk]) stats[sk] = []; stats[sk].push(reg.name);
                     });
                 });
@@ -261,55 +333,40 @@
             });
         }
 
-        function createNewGroup() {
-            const name = document.getElementById('newGroupName').value.trim();
-            if(!name) return;
-            const id = Math.random().toString(36).substring(2, 8);
-            db.ref('group_list').child(id).set({ displayName: name, createdAt: Date.now() });
-            document.getElementById('newGroupName').value = '';
+        // 聊天與 Presence
+        function setupPresence() {
+            myPresenceRef = db.ref(`groups/${groupID}/presence`).push();
+            db.ref(".info/connected").on("value", snap => { if (snap.val() === true) { myPresenceRef.onDisconnect().remove(); updatePresenceName(); } });
+            db.ref(`groups/${groupID}/presence`).on("value", snap => {
+                const listEl = document.getElementById('presenceList'); listEl.innerHTML = '';
+                Object.values(snap.val() || {}).forEach(u => { listEl.innerHTML += `<span class="presence-tag">${u.name}</span>`; });
+            });
         }
-
-        function fetchGroupList() {
-            db.ref('group_list').on('value', snap => {
-                const list = document.getElementById('existingGroups');
-                list.innerHTML = '';
-                Object.entries(snap.val()||{}).forEach(([id, info]) => {
-                    const url = `${window.location.origin}${window.location.pathname}?group=${id}`;
-                    list.innerHTML += `<div class="bg-slate-700 p-4 rounded-2xl border border-slate-600 shadow-md flex flex-col justify-between"><div class="flex justify-between items-center mb-1"><span class="font-bold text-blue-300 text-lg truncate pr-2">${info.displayName}</span><button onclick="db.ref('group_list').child('${id}').remove()" class="text-red-400 flex-shrink-0">✕</button></div><div class="text-[9px] text-slate-400 break-all mb-4 bg-slate-900 p-2 rounded font-mono opacity-50">${url}</div><a href="${url}" target="_blank" class="block bg-blue-600 text-white text-center py-2 rounded-xl font-bold text-sm">開啟專屬連結</a></div>`;
+        function updatePresenceName() { if (myPresenceRef) myPresenceRef.set({ name: document.getElementById('userName').value.trim() || "秘密客" }); }
+        function sendMsg() {
+            const name = document.getElementById('userName').value.trim() || "秘密客";
+            const text = document.getElementById('chatInput').value.trim();
+            if(!text) return; db.ref(`groups/${groupID}/messages`).push({ name, text, time: Date.now() });
+            document.getElementById('chatInput').value = '';
+        }
+        function syncChat() {
+            db.ref(`groups/${groupID}/messages`).limitToLast(30).on('value', snap => {
+                const display = document.getElementById('chatDisplay'); display.innerHTML = '';
+                Object.values(snap.val() || {}).forEach(m => {
+                    display.innerHTML += `<div class="chat-msg"><div class="text-[9px] font-bold text-blue-600">▼ ${m.name}</div><div class="text-sm text-slate-800">${m.text}</div></div>`;
                 });
+                display.scrollTop = display.scrollHeight;
             });
         }
 
-        function deleteReg(regId, d, t) {
-            const ref = db.ref(`groups/${groupID}/registrations/${regId}`);
-            ref.once('value').then(snap => {
-                const val = snap.val();
-                if(!val || !val.selections) return;
-                const filtered = val.selections.filter(s => !(s.day == d && s.time == t));
-                if(filtered.length > 0) ref.update({ selections: filtered });
-                else ref.remove();
-            });
-        }
-
-        function calculateBestTime(stats) {
-            const bestDiv = document.getElementById('bestTimeResult');
-            const sorted = Object.entries(stats).sort((a,b) => b[1].length - a[1].length);
-            if(sorted.length === 0) { bestDiv.innerHTML = `<p class="text-slate-400 italic text-sm">暫無統計資料</p>`; return; }
-            const maxP = sorted[0][1].length;
-            bestDiv.innerHTML = '';
-            sorted.filter(s => s[1].length === maxP).forEach(([time, names]) => {
-                bestDiv.innerHTML += `<div class="bg-blue-50 border-2 border-blue-100 p-4 rounded-2xl font-bold"><div class="flex justify-between mb-1"><span class="text-blue-700">${time}</span><span class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px]">${names.length}人</span></div><div class="text-[11px] text-slate-600">名單：${names.join(', ')}</div></div>`;
-            });
-        }
-
-        function clearAllGroupList() { if(confirm('⚠️ 確定要清空所有已建立的群組清單紀錄嗎？')) { db.ref('group_list').set(null); } }
-        function toggleType(type) { const btns = Array.from(document.querySelectorAll('.time-btn')).filter(b => b.getAttribute('data-time') === type); const anyUn = btns.some(b => b.getAttribute('data-selected') === 'false'); btns.forEach(b => updateBtnStatus(b, anyUn)); }
-        function changeMonth(dir) { currM += dir; if (currM > 12) { currM = 1; currY++; } if (currM < 1) { currM = 12; currY--; } renderCalendar(); }
-        function addFood() { const u = document.getElementById('userName').value.trim()||"秘密客"; const f = document.getElementById('newFood').value.trim(); if(!f) return; db.ref(`groups/${groupID}/foods/${f}`).set({ proposer: u, count: 0 }); document.getElementById('newFood').value = ''; }
         function voteFood(n) { const u = document.getElementById('userName').value.trim()||"秘密客"; db.ref(`groups/${groupID}/foods/${n}/voters/${u}`).transaction(c => (c || 0) + 1); db.ref(`groups/${groupID}/foods/${n}/count`).transaction(c => (c || 0) + 1); }
+        function addFood() { const u = document.getElementById('userName').value.trim()||"秘密客"; const f = document.getElementById('newFood').value.trim(); if(!f) return; db.ref(`groups/${groupID}/foods/${f}`).set({ proposer: u, count: 0 }); document.getElementById('newFood').value = ''; }
         function delFood(n) { if(confirm('刪除？')) db.ref(`groups/${groupID}/foods/${n}`).remove(); }
-        function clearCurrentGroup() { if(confirm('⚠️ 確定清空此房間所有資料？')) { db.ref(`groups/${groupID}`).set(null).then(() => location.reload()); } }
-        function submitData() { const n = document.getElementById('userName').value.trim(); if(!n) return alert('請輸入名字'); const sel = []; document.querySelectorAll('.time-btn[data-selected="true"]').forEach(b => { sel.push({ day: b.getAttribute('data-day'), time: b.getAttribute('data-time') }); }); if(sel.length === 0) return alert('請選擇時段'); db.ref(`groups/${groupID}/registrations`).push({ name: n, month: `${currY}-${String(currM).padStart(2, '0')}`, selections: sel, timestamp: Date.now() }).then(() => { alert('登記成功！'); document.querySelectorAll('.time-btn').forEach(b => updateBtnStatus(b, false)); }); }
+        function deleteReg(regId, d, t) { if(confirm('確定移除？')) { const ref = db.ref(`groups/${groupID}/registrations/${regId}`); ref.once('value').then(snap => { const val = snap.val(); const filtered = val.selections.filter(s => !(s.day == d && s.time == t)); if(filtered.length > 0) ref.update({ selections: filtered }); else ref.remove(); }); } }
+        function changeMonth(dir) { currM += dir; if (currM > 12) { currM = 1; currY++; } if (currM < 1) { currM = 12; currY--; } renderCalendar(); }
+        function calculateBestTime(stats) { const bestDiv = document.getElementById('bestTimeResult'); const sorted = Object.entries(stats).sort((a,b) => b[1].length - a[1].length); if(sorted.length === 0) { bestDiv.innerHTML = `<p class="text-slate-400 italic text-sm">暫無資料</p>`; return; } const maxP = sorted[0][1].length; bestDiv.innerHTML = ''; sorted.filter(s => s[1].length === maxP).forEach(([time, names]) => { bestDiv.innerHTML += `<div class="bg-blue-50 border-2 border-blue-100 p-4 rounded-2xl font-bold"><div class="flex justify-between mb-1"><span class="text-blue-700">${time}</span><span class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px]">${names.length}人</span></div><div class="text-[11px] text-slate-600">名單：${names.join(', ')}</div></div>`; }); }
+        function clearCurrentGroup() { if(confirm('確定清空？')) { db.ref(`groups/${groupID}`).set(null).then(() => location.reload()); } }
+        function submitData() { const n = document.getElementById('userName').value.trim(); if(!n) return alert('請輸入名字'); const sel = []; document.querySelectorAll('.time-btn.selected').forEach(b => { sel.push({ day: b.getAttribute('data-day'), time: b.getAttribute('data-time') }); }); if(sel.length === 0) return alert('請選擇時段'); db.ref(`groups/${groupID}/registrations`).push({ name: n, month: `${currY}-${String(currM).padStart(2, '0')}`, selections: sel, timestamp: Date.now() }).then(() => { alert('登記成功！'); document.querySelectorAll('.time-btn').forEach(b => { b.classList.remove('selected'); b.innerText = b.getAttribute('data-time'); }); }); }
     </script>
 </body>
 </html>
