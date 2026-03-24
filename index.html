@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>聚餐登記平台</title>
+    <title>聚餐登記平台 - 隨機代碼版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -24,11 +24,9 @@
         .lunch-tag { background: #f59e0b; } 
         .dinner-tag { background: #6366f1; }
         #adminAuth { position: fixed; inset: 0; background: #1e293b; z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .opacity-0 { opacity: 0; }
-        .opacity-100 { opacity: 1; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen pb-20">
+<body class="bg-slate-100 min-h-screen pb-20 font-sans">
 
     <div id="adminAuth" style="display: none;">
         <div class="bg-white p-10 rounded-3xl text-slate-800 shadow-2xl w-80 text-center border-4 border-blue-500">
@@ -36,33 +34,35 @@
             <input type="text" id="authPass" maxlength="3" placeholder=""
                 class="w-full border-b-4 border-blue-500 p-2 text-center text-4xl font-black tracking-[1rem] outline-none mb-8 text-blue-600"
                 onkeypress="if(event.key === 'Enter') checkAuth()">
-            <button onclick="checkAuth()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition">確認登入</button>
+            <button onclick="checkAuth()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">確認登入</button>
         </div>
     </div>
 
-    <div id="mainApp" class="opacity-0 transition-opacity duration-500">
+    <div id="mainApp" style="opacity: 0; transition: opacity 0.5s;">
         <div class="bg-blue-700 p-4 text-white text-center shadow-lg sticky top-0 z-50">
             <h1 class="text-xl md:text-2xl font-black">🍴 聚餐登記平台</h1>
-            <div id="groupIndicator" class="text-[10px] bg-blue-800 px-3 py-1 rounded-full mt-1 border border-blue-400 font-mono tracking-widest inline-block font-bold"></div>
+            <div id="groupIndicator" class="text-[10px] bg-blue-800 px-3 py-1 rounded-full mt-1 border border-blue-400 inline-block font-bold"></div>
         </div>
 
         <div class="max-w-7xl mx-auto px-2 md:px-6 mt-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
             
-            <div class="lg:col-span-1 space-y-4">
-                <div id="adminPanel" class="hidden bg-slate-800 p-5 rounded-3xl shadow-xl text-white border-b-8 border-blue-500">
-                    <label class="font-bold block mb-2 text-blue-300 text-sm">🆕 新增聚餐群組</label>
-                    <input type="text" id="newGroupName" placeholder="群組名稱 (英數)" class="w-full p-3 rounded-xl bg-slate-700 text-white mb-3 outline-none text-sm border border-slate-600">
-                    <button onclick="createNewGroup()" class="w-full bg-blue-500 py-3 rounded-xl font-black hover:bg-blue-400 mb-4 transition shadow-lg">建立並存檔</button>
-                    
-                    <label class="font-bold block mb-2 text-blue-300 border-t pt-4 border-slate-600 text-sm">📂 已建立清單</label>
-                    <div id="existingGroups" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+            <div id="adminContainer" class="hidden lg:col-span-4 space-y-4">
+                <div class="bg-slate-800 p-8 rounded-3xl shadow-xl text-white border-b-8 border-blue-500 max-w-2xl mx-auto w-full">
+                    <label class="font-bold block mb-4 text-blue-300 text-lg">🆕 新增聚餐群組</label>
+                    <div class="flex gap-3 mb-6">
+                        <input type="text" id="newGroupName" placeholder="請輸入中文群組名 (例如：大學同學會)" class="flex-1 p-4 rounded-xl bg-slate-700 text-white outline-none border border-slate-600">
+                        <button onclick="createNewGroup()" class="bg-blue-500 px-8 rounded-xl font-black hover:bg-blue-400 transition shadow-lg text-white">建立</button>
+                    </div>
+                    <label class="font-bold block mb-4 text-blue-300 border-t pt-6 border-slate-600 text-lg">📂 已建立清單 (自動生成英文代碼)</label>
+                    <div id="existingGroups" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-1"></div>
                 </div>
+            </div>
 
+            <div id="userSidePanel" class="lg:col-span-1 space-y-4">
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
                     <label class="font-bold block mb-2 text-slate-700">1. 我的名字</label>
                     <input type="text" id="userName" placeholder="請輸入名字" class="w-full border-2 border-slate-100 p-3 rounded-2xl outline-none focus:border-blue-500 font-bold">
                 </div>
-
                 <div class="bg-amber-50 border-2 border-amber-100 p-5 rounded-3xl shadow-sm">
                     <label class="font-bold block mb-2 text-amber-800 text-lg text-center font-black">餐廳投票 ❤️</label>
                     <div id="foodPool" class="space-y-3 mb-4 max-h-60 overflow-y-auto px-1 border-b pb-4 border-amber-200"></div>
@@ -71,35 +71,25 @@
                         <button onclick="addFood()" class="w-full bg-amber-500 text-white py-3 rounded-xl font-bold active:scale-95 transition">新增提議</button>
                     </div>
                 </div>
-
-                <button onclick="clearCurrentGroup()" class="w-full py-2 text-xs text-red-400 font-bold border-2 border-dashed border-red-200 rounded-xl hover:bg-red-50 transition">⚠️ 清空此群組資料</button>
+                <button onclick="clearCurrentGroup()" class="w-full py-2 text-xs text-red-400 font-bold border-2 border-dashed border-red-200 rounded-xl hover:bg-red-50">⚠️ 清空此群組資料</button>
             </div>
 
-            <div class="lg:col-span-3 space-y-4">
+            <div id="userMainPanel" class="lg:col-span-3 space-y-4">
                 <div class="flex items-center justify-between bg-white p-4 rounded-3xl shadow-sm border border-slate-200">
                     <button onclick="changeMonth(-1)" class="w-10 h-10 flex bg-slate-50 rounded-full text-blue-600 font-black items-center justify-center">❮</button>
-                    <div id="currentMonthDisplay" class="text-xl font-black text-slate-700 tracking-tighter text-center flex-1"></div>
+                    <div id="currentMonthDisplay" class="text-xl font-black text-slate-700 flex-1 text-center tracking-tighter"></div>
                     <button onclick="changeMonth(1)" class="w-10 h-10 flex bg-slate-50 rounded-full text-blue-600 font-black items-center justify-center">❯</button>
                 </div>
-
                 <div class="flex justify-end gap-2 mb-2">
-                    <button onclick="toggleType('午餐')" class="bg-amber-100 text-amber-700 px-4 py-2 rounded-full font-bold text-xs shadow-sm">一鍵午餐</button>
-                    <button onclick="toggleType('晚餐')" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-bold text-xs shadow-sm">一鍵晚餐</button>
+                    <button onclick="toggleType('午餐')" class="bg-amber-100 text-amber-700 px-4 py-2 rounded-full font-bold text-xs">一鍵午餐</button>
+                    <button onclick="toggleType('晚餐')" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-bold text-xs">一鍵晚餐</button>
                 </div>
-
                 <div class="grid grid-cols-7 gap-px bg-slate-200 border-2 border-slate-200 rounded-3xl overflow-hidden shadow-2xl">
                     <div class="bg-slate-50 p-2 font-bold text-red-500 text-center text-xs">日</div>
-                    <div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">一</div>
-                    <div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">二</div>
-                    <div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs text-xs">三</div>
-                    <div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs text-xs text-xs">四</div>
-                    <div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs text-xs text-xs text-xs">五</div>
-                    <div class="bg-slate-50 p-2 font-bold text-blue-500 text-center text-xs text-xs text-xs text-xs text-xs text-xs">六</div>
+                    <div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">一</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">二</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">三</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs">四</div><div class="bg-slate-50 p-2 font-bold text-slate-600 text-center text-xs text-xs">五</div><div class="bg-slate-50 p-2 font-bold text-blue-500 text-center text-xs text-xs">六</div>
                     <div id="calendarDays" class="contents text-xs"></div>
                 </div>
-
-                <button onclick="submitData()" class="w-full bg-red-600 text-white text-2xl font-black py-6 rounded-3xl shadow-xl active:scale-95 transition-all mt-4">確認送出登記</button>
-
+                <button onclick="submitData()" class="w-full bg-red-600 text-white text-2xl font-black py-6 rounded-3xl shadow-xl active:scale-95 transition mt-4">確認送出登記</button>
                 <div class="mt-8 bg-white border-2 border-blue-200 p-6 rounded-3xl shadow-inner text-slate-800">
                     <h3 class="text-xl font-black text-blue-800 mb-4 tracking-tighter">🏆 本月最佳聚餐時段</h3>
                     <div id="bestTimeResult" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -126,7 +116,6 @@
         let currY, currM;
 
         window.onload = function() {
-            // 核心門禁邏輯：如果有 groupID，直接進入；沒有才顯示密碼
             if (!groupID) {
                 document.getElementById('adminAuth').style.display = 'flex';
                 document.getElementById('authPass').focus();
@@ -136,44 +125,61 @@
         };
 
         function checkAuth() {
-            const pass = document.getElementById('authPass').value.trim();
-            if (pass === "666") {
+            if (document.getElementById('authPass').value.trim() === "666") {
                 document.getElementById('adminAuth').style.display = 'none';
-                document.getElementById('adminPanel').classList.remove('hidden'); // 管理員登入後才顯示新增群組區
-                startApp();
+                startApp(true);
             } else {
                 alert("錯誤");
-                document.getElementById('authPass').value = '';
             }
         }
 
-        function startApp() {
+        function startApp(isAdmin = false) {
             const now = new Date();
-            currY = now.getFullYear();
-            currM = now.getMonth() + 1;
+            currY = now.getFullYear(); currM = now.getMonth() + 1;
+            document.getElementById('mainApp').style.opacity = "1";
             
-            // 顯示主介面
-            const app = document.getElementById('mainApp');
-            app.classList.remove('opacity-0');
-            app.classList.add('opacity-100');
-            
-            document.getElementById('groupIndicator').innerText = `GROUP: ${groupID || 'ADMIN_CENTER'}`;
-            
-            // 只有管理員模式才抓取群組清單
-            if (!groupID) {
+            if (!groupID && isAdmin) {
+                document.getElementById('adminContainer').classList.remove('hidden');
+                document.getElementById('userSidePanel').classList.add('hidden');
+                document.getElementById('userMainPanel').classList.add('hidden');
+                document.getElementById('groupIndicator').innerText = "管理員模式";
                 fetchGroupList();
+            } else if (groupID) {
+                // 從資料庫抓取該群組的中文名稱顯示
+                db.ref('group_list').child(groupID).once('value', snap => {
+                    const name = snap.val() ? snap.val().displayName : groupID;
+                    document.getElementById('groupIndicator').innerText = `群組：${name}`;
+                });
+                document.getElementById('adminContainer').classList.add('hidden');
+                document.getElementById('userSidePanel').classList.remove('hidden');
+                document.getElementById('userMainPanel').classList.remove('hidden');
+                renderCalendar();
             }
-            
-            renderCalendar();
         }
 
-        // --- 管理員專屬 ---
+        // --- 隨機代碼生成器 ---
+        function generateRandomID(length = 6) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
         function createNewGroup() {
             const name = document.getElementById('newGroupName').value.trim();
-            if(!name) return;
-            const clean = name.replace(/[^a-z0-9]/gi, '');
-            db.ref('group_list').child(clean).set({ displayName: name, createdAt: Date.now() });
-            document.getElementById('newGroupName').value = '';
+            if(!name) return alert('請輸入中文名稱');
+            
+            const randomID = generateRandomID(); // 生成隨機英文代碼
+            
+            db.ref('group_list').child(randomID).set({
+                displayName: name,
+                createdAt: Date.now()
+            }).then(() => {
+                alert(`建立成功！\n名稱：${name}\n代碼：${randomID}`);
+                document.getElementById('newGroupName').value = '';
+            });
         }
 
         function fetchGroupList() {
@@ -181,16 +187,17 @@
                 const list = document.getElementById('existingGroups');
                 list.innerHTML = '';
                 const data = snap.val() || {};
-                Object.keys(data).forEach(id => {
+                Object.entries(data).sort((a,b)=>b[1].createdAt - a[1].createdAt).forEach(([id, info]) => {
                     const url = `${window.location.origin}${window.location.pathname}?group=${id}`;
                     list.innerHTML += `
-                        <div class="bg-slate-700 p-3 rounded-2xl border border-slate-600 mb-2">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-black text-blue-300 text-xs uppercase">${id}</span>
-                                <button onclick="deleteGroup('${id}')" class="text-[10px] text-red-400">✕</button>
+                        <div class="bg-slate-700 p-4 rounded-2xl border border-slate-600 mb-2">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-black text-blue-300 text-lg">${info.displayName}</span>
+                                <button onclick="deleteGroup('${id}')" class="text-red-400 font-bold text-xs">✕ 移除</button>
                             </div>
-                            <div class="text-[9px] text-slate-400 break-all select-all mb-2 font-mono">${url}</div>
-                            <a href="${url}" target="_blank" class="block bg-blue-600 text-white text-center py-2 rounded-xl text-xs font-bold">開啟專屬分頁</a>
+                            <div class="text-[10px] text-slate-500 mb-2 font-mono">網址代碼：${id}</div>
+                            <div class="text-xs text-slate-400 break-all select-all mb-4 bg-slate-900 p-2 rounded font-mono">${url}</div>
+                            <a href="${url}" target="_blank" class="block bg-blue-600 text-white text-center py-3 rounded-xl font-bold">開啟群組頁面</a>
                         </div>`;
                 });
             });
@@ -198,7 +205,19 @@
 
         function deleteGroup(id) { if(confirm('從清單移除？')) db.ref('group_list').child(id).remove(); }
 
-        // --- 月曆邏輯 ---
+        // --- 月曆邏輯 (維持穩定修正後版本) ---
+        function deleteReg(regId, dayToRemove, timeToRemove) {
+            if(!confirm(`確定移除 ${dayToRemove}日 (${timeToRemove}) 的登記？`)) return;
+            const ref = db.ref(`groups/${groupID}/registrations/${regId}`);
+            ref.once('value').then(snap => {
+                const val = snap.val();
+                if(!val || !val.selections) return;
+                const filtered = val.selections.filter(s => !(s.day == dayToRemove && s.time == timeToRemove));
+                if(filtered.length > 0) ref.update({ selections: filtered });
+                else ref.remove();
+            });
+        }
+
         function changeMonth(dir) {
             currM += dir;
             if (currM > 12) { currM = 1; currY++; }
@@ -223,7 +242,7 @@
                         <div id="dinner-list-${d}"></div>
                     </div>`;
             }
-            if(groupID) syncData(); // 只有在群組模式才同步數據
+            if(groupID) syncData();
         }
 
         function handleBtnClick(el) {
@@ -247,21 +266,18 @@
 
         function syncData() {
             const mKey = `${currY}-${String(currM).padStart(2, '0')}`;
-            // 餐廳同步
             db.ref(`groups/${groupID}/foods`).on('value', snap => {
                 const p = document.getElementById('foodPool'); p.innerHTML = '';
                 const d = snap.val() || {};
                 Object.entries(d).sort((a,b)=>(b[1].count||0)-(a[1].count||0)).forEach(([name, info]) => {
-                    let voters = info.voters ? Object.keys(info.voters).join(', ') : "尚無";
                     p.innerHTML += `
                         <div class="bg-white p-3 rounded-2xl border border-amber-200 shadow-sm text-sm">
-                            <div class="flex justify-between font-black mb-1 text-slate-800"><span>${name}</span><div><button onclick="voteFood('${name}')">❤️</button><button onclick="delFood('${name}')" class="ml-2 text-slate-300 font-bold">✕</button></div></div>
-                            <div class="text-[9px] text-slate-400 font-bold">提議人：${info.proposer}</div>
-                            <div class="text-[10px] text-amber-700 bg-amber-100 p-2 rounded-lg mt-1 font-medium">按讚：${voters} (${info.count||0})</div>
+                            <div class="flex justify-between font-black mb-1"><span>${name}</span><div><button onclick="voteFood('${name}')">❤️</button><button onclick="delFood('${name}')" class="ml-2 text-slate-300 font-bold">✕</button></div></div>
+                            <div class="text-[9px] text-slate-400 font-bold italic">由 ${info.proposer} 提議</div>
+                            <div class="text-[10px] text-amber-700 bg-amber-100 p-2 rounded-lg mt-1 font-medium">按讚：${info.voters ? Object.keys(info.voters).join(',') : '尚無'} (${info.count||0})</div>
                         </div>`;
                 });
             });
-            // 登記同步
             db.ref(`groups/${groupID}/registrations`).on('value', snap => {
                 const d = snap.val() || {};
                 document.querySelectorAll('[id^="lunch-list-"], [id^="dinner-list-"]').forEach(el => el.innerHTML = '');
@@ -271,7 +287,7 @@
                     reg.selections.forEach(sel => {
                         const target = document.getElementById(`${sel.time === '午餐' ? 'lunch-list-' : 'dinner-list-'}${sel.day}`);
                         if(target) {
-                            target.innerHTML += `<div class="name-tag ${sel.time === '午餐' ? 'lunch-tag' : 'dinner-tag'}"><span>${reg.name}</span><button onclick="delReg('${id}')" class="opacity-70 ml-1">✕</button></div>`;
+                            target.innerHTML += `<div class="name-tag ${sel.time === '午餐' ? 'lunch-tag' : 'dinner-tag'}"><span>${reg.name}</span><button onclick="deleteReg('${id}', '${sel.day}', '${sel.time}')" class="opacity-70 ml-1">✕</button></div>`;
                         }
                         const sk = `${sel.day}日(${sel.time})`;
                         if(!stats[sk]) stats[sk] = [];
@@ -285,16 +301,12 @@
         function calculateBestTime(stats) {
             const bestDiv = document.getElementById('bestTimeResult');
             const sorted = Object.entries(stats).sort((a,b) => b[1].length - a[1].length);
-            if(sorted.length === 0) { bestDiv.innerHTML = `<p class="text-slate-400 italic text-sm">暫無登記資料</p>`; return; }
+            if(sorted.length === 0) { bestDiv.innerHTML = `<p class="text-slate-400 italic text-sm">暫無資料</p>`; return; }
             const maxP = sorted[0][1].length;
             const tops = sorted.filter(s => s[1].length === maxP);
             bestDiv.innerHTML = '';
             tops.forEach(([time, names]) => {
-                bestDiv.innerHTML += `
-                    <div class="bg-blue-50 border-2 border-blue-100 p-4 rounded-2xl shadow-sm">
-                        <div class="flex justify-between font-black text-blue-700 mb-1"><span>${time}</span><span class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px]">${names.length}人</span></div>
-                        <div class="text-[11px] text-slate-600 font-bold">名單：${names.join(', ')}</div>
-                    </div>`;
+                bestDiv.innerHTML += `<div class="bg-blue-50 border-2 border-blue-100 p-4 rounded-2xl shadow-sm mb-2"><div class="flex justify-between font-black mb-1"><span class="text-blue-700">${time}</span><span class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px]">${names.length}人</span></div><div class="text-[11px] text-slate-600 font-bold">名單：${names.join(', ')}</div></div>`;
             });
         }
 
@@ -314,7 +326,6 @@
         }
 
         function delFood(n) { if(confirm('刪除提議？')) db.ref(`groups/${groupID}/foods/${n}`).remove(); }
-        function delReg(id) { if(confirm('刪除登記？')) db.ref(`groups/${groupID}/registrations/${id}`).remove(); }
         function clearCurrentGroup() { if(confirm('清空此群組？')) db.ref(`groups/${groupID}`).set(null).then(() => location.reload()); }
 
         function submitData() {
@@ -328,7 +339,6 @@
             db.ref(`groups/${groupID}/registrations`).push({ name: n, month: `${currY}-${String(currM).padStart(2, '0')}`, selections: sel, timestamp: Date.now() }).then(() => {
                 alert('登記成功！');
                 document.querySelectorAll('.time-btn').forEach(b => updateBtnStatus(b, false));
-                document.getElementById('userName').value = '';
             });
         }
     </script>
